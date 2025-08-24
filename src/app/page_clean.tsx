@@ -1,33 +1,44 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import ImageUploader from '@/components/ImageUploader'
 import ProcessingOptions from '@/components/ProcessingOptions'
 import AdvancedSettings from '@/components/AdvancedSettings'
 import PreviewPanel from '@/components/PreviewPanel'
 
+// Use the same interface as PreviewPanel
+interface ProcessingResult {
+  success: boolean
+  originalImage: string
+  outlineImage: string
+  message: string
+  filename: string
+  processedAt: string
+  settings?: {
+    algorithm: string
+    intensity: string
+    invertColors: boolean
+  }
+  metadata?: {
+    originalWidth: number
+    originalHeight: number
+  }
+}
+
 export default function Home() {
+  const [isLoading] = useState(false)
   const [error] = useState<string | null>(null)
+  const [processedResult, setProcessedResult] = useState<ProcessingResult | null>(null)
   
   // File state
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [preview, setPreview] = useState<string | null>(null)
-  
-  // Keep isLoading as false since we removed the full resolution processing
-  const isLoading = false
   
   // Processing options state
   const [algorithm, setAlgorithm] = useState('edge-detection')
   const [intensity, setIntensity] = useState('medium')
   const [invertColors, setInvertColors] = useState(false)
   const [customParams, setCustomParams] = useState<Record<string, string | number>>({})
-
-  // Handle backward compatibility for advanced-edge-detection
-  useEffect(() => {
-    if (algorithm === 'advanced-edge-detection') {
-      setAlgorithm('edge-detection')
-    }
-  }, [algorithm])
 
   // Reset custom parameters when algorithm changes
   const handleAlgorithmChange = (newAlgorithm: string) => {
@@ -59,6 +70,15 @@ export default function Home() {
         setPreview(null)
       }
     }
+  }
+
+  const downloadImage = (imageData: string, filename: string) => {
+    const link = document.createElement('a')
+    link.href = imageData
+    link.download = filename
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
   }
 
   return (
@@ -120,8 +140,25 @@ export default function Home() {
               intensity={intensity}
               invertColors={invertColors}
               customParams={customParams}
+              onPreviewUpdate={setProcessedResult}
               onSettingsReset={handleSettingsReset}
             />
+            
+            {selectedFile && processedResult && (
+              <div className="mt-6">
+                <button
+                  onClick={() => downloadImage(processedResult.outlineImage, processedResult.filename)}
+                  className="w-full bg-green-600 hover:bg-green-700 text-white font-medium py-3 px-6 rounded-lg transition-colors"
+                >
+                  <div className="flex items-center justify-center space-x-2">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    <span>Download Result</span>
+                  </div>
+                </button>
+              </div>
+            )}
             
             {error && (
               <div className="mt-6 p-4 bg-red-50 dark:bg-red-900 border border-red-200 dark:border-red-700 rounded-lg">
