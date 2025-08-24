@@ -4,8 +4,8 @@ import { useState, useEffect } from 'react'
 
 interface AdvancedSettingsProps {
   algorithm: string
-  customParams: Record<string, string | number>
-  onParametersChange: (params: Record<string, string | number>) => void
+  customParams: Record<string, string | number | boolean>
+  onParametersChange: (params: Record<string, string | number | boolean>) => void
   disabled?: boolean
 }
 
@@ -33,7 +33,7 @@ export default function AdvancedSettings({
   disabled = false
 }: AdvancedSettingsProps) {
   const [isExpanded, setIsExpanded] = useState(false)
-  const [parameters, setParameters] = useState<Record<string, string | number>>(customParams || {})
+  const [parameters, setParameters] = useState<Record<string, string | number | boolean>>(customParams || {})
 
   // Define sliders for each algorithm
   const getSliderConfigs = (): SliderConfig[] => {
@@ -83,6 +83,38 @@ export default function AdvancedSettings({
           { key: 'line_thickness', label: 'Line Thickness', min: 1, max: 5, step: 1, defaultValue: 2, description: 'Thickness of output lines' },
           { key: 'min_area', label: 'Minimum Area', min: 100, max: 1000, step: 50, defaultValue: 300, description: 'Minimum contour area to draw' }
         ]
+      case 'svg-vector-trace':
+        return [
+          { key: 'threshold', label: 'B&W Threshold', min: 50, max: 220, step: 10, defaultValue: 128, description: 'Black/white conversion threshold (lower = more black pixels)' },
+          { key: 'ltres', label: 'Line Precision', min: 0.01, max: 2.0, step: 0.01, defaultValue: 0.5, description: 'Line fitting precision (lower = more precise straight lines)' },
+          { key: 'qtres', label: 'Curve Precision', min: 0.01, max: 2.0, step: 0.01, defaultValue: 0.5, description: 'Curve fitting precision (lower = smoother curves)' },
+          { key: 'pathomit', label: 'Detail Level', min: 0, max: 20, step: 1, defaultValue: 2, description: 'Minimum path length (lower = more detail kept)' },
+          { key: 'roundcoords', label: 'Coordinate Precision', min: 1, max: 4, step: 1, defaultValue: 2, description: 'Decimal places for coordinates (higher = more precise)' },
+          { 
+            key: 'linefilter', 
+            label: 'Line Filter', 
+            type: 'select' as const,
+            options: [
+              { value: 'true', label: 'Enabled' },
+              { value: 'false', label: 'Disabled' }
+            ],
+            defaultValue: 'true', 
+            description: 'Clean up jagged paths for smoother output' 
+          },
+          { 
+            key: 'rightangleenhance', 
+            label: 'Corner Enhancement', 
+            type: 'select' as const,
+            options: [
+              { value: 'false', label: 'Smooth Curves' },
+              { value: 'true', label: 'Sharp Corners' }
+            ],
+            defaultValue: 'false', 
+            description: 'Enhance right angles vs smooth curves' 
+          },
+          { key: 'colorsampling', label: 'Color Sampling', min: 0, max: 2, step: 1, defaultValue: 1, description: 'Color sampling method (0=off, 1=random, 2=deterministic)' },
+          { key: 'blurradius', label: 'Pre-blur Radius', min: 0, max: 5, step: 0.5, defaultValue: 0, description: 'Blur before tracing (0=no blur, preserves detail)' }
+        ]
       case 'artistic':
         return [
           { key: 'blur', label: 'Blur', min: 0.3, max: 3, step: 0.1, defaultValue: 0.8, description: 'Artistic blur effect' }
@@ -100,8 +132,14 @@ export default function AdvancedSettings({
   }, [customParams])
 
   const handleSliderChange = (key: string, value: number | string) => {
+    // Convert string boolean values to actual booleans for certain SVG tracer options
+    let processedValue: number | string | boolean = value
+    if (algorithm === 'svg-vector-trace' && (key === 'linefilter' || key === 'rightangleenhance')) {
+      processedValue = value === 'true'
+    }
+    
     // eslint-disable-next-line prefer-const
-    let newParameters = { ...parameters, [key]: value }
+    let newParameters = { ...parameters, [key]: processedValue }
     
     // Special validation for AI Edge Detection thresholds (only for numeric values)
     if (algorithm === 'ai-edge-detection' && typeof value === 'number') {
@@ -127,7 +165,7 @@ export default function AdvancedSettings({
   }
 
   const resetToDefaults = () => {
-    const defaults: Record<string, string | number> = {}
+    const defaults: Record<string, string | number | boolean> = {}
     sliderConfigs.forEach(config => {
       defaults[config.key] = config.defaultValue
     })
@@ -147,7 +185,12 @@ export default function AdvancedSettings({
   }
 
   const getCurrentValue = (config: SliderConfig) => {
-    return parameters[config.key] ?? config.defaultValue
+    const value = parameters[config.key] ?? config.defaultValue
+    // Convert boolean values back to strings for select inputs
+    if (typeof value === 'boolean') {
+      return value.toString()
+    }
+    return value
   }
 
   if (sliderConfigs.length === 0) {

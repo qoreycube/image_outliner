@@ -48,13 +48,13 @@ interface PreviewPanelProps {
   algorithm: string
   intensity: string
   invertColors: boolean
-  customParams: Record<string, string | number>
+  customParams: Record<string, string | number | boolean>
   onPreviewUpdate?: (result: ProcessingResult) => void
   onSettingsReset: (settings: {
     algorithm: string
     intensity: string
     invertColors: boolean
-    customParams: Record<string, string | number>
+    customParams: Record<string, string | number | boolean>
   }) => void
 }
 
@@ -73,7 +73,7 @@ export default function PreviewPanel({
     algorithm: string
     intensity: string
     invertColors: boolean
-    customParams: Record<string, string | number>
+    customParams: Record<string, string | number | boolean>
   } | null>(null)
   const [isPreviewLoading, setIsPreviewLoading] = useState(false)
   const [previewError, setPreviewError] = useState<string | null>(null)

@@ -20,7 +20,7 @@ export default function Home() {
   const [algorithm, setAlgorithm] = useState('edge-detection')
   const [intensity, setIntensity] = useState('medium')
   const [invertColors, setInvertColors] = useState(false)
-  const [customParams, setCustomParams] = useState<Record<string, string | number>>({})
+  const [customParams, setCustomParams] = useState<Record<string, string | number | boolean>>({})
 
   // Handle backward compatibility for advanced-edge-detection
   useEffect(() => {
@@ -39,7 +39,7 @@ export default function Home() {
     algorithm: string
     intensity: string
     invertColors: boolean
-    customParams: Record<string, string | number>
+    customParams: Record<string, string | number | boolean>
   }) => {
     setAlgorithm(settings.algorithm)
     setIntensity(settings.intensity)
