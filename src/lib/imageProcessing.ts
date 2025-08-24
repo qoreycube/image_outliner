@@ -1,7 +1,38 @@
 import sharp from 'sharp'
+const ImageTracer = require('imagetracerjs')
+const { createCanvas, loadImage } = require('canvas')
+
+// Safe error message extractor. Avoids using `instanceof Error` which can
+// fail in some runtimes if the global Error has been shadowed or altered.
+function getErrMsg(e: unknown): string {
+  // Try to extract a message without invoking user-land getters or
+  // running code that might throw (avoid JSON.stringify which walks
+  // properties and can trigger unsafe getters).
+  try {
+    if (e == null) return 'Unknown error'
+    if (typeof e === 'string') return e
+    // Safe access to common fields inside try/catch
+    try {
+      const m = (e as any).message
+      if (typeof m === 'string' && m.length > 0) return m
+    } catch {
+      // ignore
+    }
+    try {
+      const n = (e as any).name
+      if (typeof n === 'string' && n.length > 0) return n
+    } catch {
+      // ignore
+    }
+    // Fallback to Object.prototype.toString which won't run user code
+    return Object.prototype.toString.call(e)
+  } catch {
+    return 'Unknown error'
+  }
+}
 
 export interface OutlineOptions {
-  algorithm?: 'edge-detection' | 'portrait-optimized' | 'high-contrast' | 'artistic' | 'ai-edge-detection' | 'coloring-xdog' | 'coloring-hf'
+  algorithm?: 'edge-detection' | 'portrait-optimized' | 'high-contrast' | 'artistic' | 'ai-edge-detection' | 'coloring-xdog' | 'coloring-hf' | 'svg-vector-trace'
   intensity?: 'light' | 'medium' | 'strong'
   invertColors?: boolean
   customParams?: {
@@ -35,6 +66,7 @@ export interface OutlineOptions {
   canny_low?: number
   canny_high?: number
   invert_colors?: boolean
+  turdSize?: number
     // Coloring HF parameters (updated for local implementation)
     min_area?: number
   }
@@ -128,7 +160,7 @@ export async function createOutlineAdvancedEdgeDetection(
     return result.png().toBuffer()
   } catch (error) {
     console.error('Error in createOutlineAdvancedEdgeDetection:', error)
-    throw new Error(`Edge detection processing failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    throw new Error(`Edge detection processing failed: ${getErrMsg(error)}`)
   }
 }
 
@@ -177,7 +209,7 @@ export async function createOutlinePortraitOptimized(
     return result.png().toBuffer()
   } catch (error) {
     console.error('Error in createOutlinePortraitOptimized:', error)
-    throw new Error(`Portrait processing failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    throw new Error(`Portrait processing failed: ${getErrMsg(error)}`)
   }
 }
 
@@ -214,7 +246,7 @@ export async function createOutlineHighContrast(
     return result.png().toBuffer()
   } catch (error) {
     console.error('Error in createOutlineHighContrast:', error)
-    throw new Error(`High contrast processing failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    throw new Error(`High contrast processing failed: ${getErrMsg(error)}`)
   }
 }
 
@@ -258,7 +290,7 @@ export async function createOutlineArtistic(
     return result.png().toBuffer()
   } catch (error) {
     console.error('Error in createOutlineArtistic:', error)
-    throw new Error(`Artistic processing failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    throw new Error(`Artistic processing failed: ${getErrMsg(error)}`)
   }
 }
 
@@ -322,7 +354,7 @@ export async function createOutlineAIEdgeDetection(
     return buffer
   } catch (error) {
     console.error('Error in createOutlineAIEdgeDetection:', error)
-    throw new Error(`AI Edge Detection processing failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    throw new Error(`AI Edge Detection processing failed: ${getErrMsg(error)}`)
   }
 }
 
@@ -416,7 +448,7 @@ export async function createOutlineColoringXDoG(
     return buffer
   } catch (error) {
     console.error('Error in createOutlineColoringXDoG:', error)
-    throw new Error(`Coloring XDoG processing failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    throw new Error(`Coloring XDoG processing failed: ${getErrMsg(error)}`)
   }
 }
 
@@ -480,7 +512,88 @@ export async function createOutlineColoringHF(
     return buffer
   } catch (error) {
     console.error('Error in createOutlineColoringHF:', error)
-    throw new Error(`Coloring HF processing failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    throw new Error(`Coloring HF processing failed: ${getErrMsg(error)}`)
+  }
+}
+
+/**
+ * Create a black & white bitmap then vector-trace it to SVG using imagetracerjs.
+ */
+export async function createOutlineSVGVectorTrace(
+  imageBuffer: Buffer,
+  options: OutlineOptions = {}
+): Promise<Buffer> {
+  try {
+    const { intensity = 'medium', invertColors = false, customParams } = options
+
+    const settings = {
+      light: { threshold: 180, turdSize: 100 },
+      medium: { threshold: 128, turdSize: 50 },
+      strong: { threshold: 100, turdSize: 10 }
+    }
+
+    const params = settings[intensity]
+    const threshold = customParams?.threshold ?? params.threshold
+    const turdSize = customParams?.turdSize ?? params.turdSize
+
+    // Create a high-contrast B/W image suitable for tracing
+    let processed = sharp(imageBuffer)
+      .grayscale()
+      .threshold(threshold)
+
+    if (invertColors) {
+      processed = processed.negate()
+    }
+
+    // Convert to PNG buffer for imagetracerjs
+    const pngBuffer = await processed.png().toBuffer()
+
+    // Load image using node-canvas
+    const image = await loadImage(pngBuffer)
+    
+    // Create canvas and get image data
+    const canvas = createCanvas(image.width, image.height)
+    const ctx = canvas.getContext('2d')
+    ctx.drawImage(image, 0, 0)
+    const imageData = ctx.getImageData(0, 0, image.width, image.height)
+
+    // ImageTracer options
+    const tracerOptions = {
+      // Quality settings
+      ltres: 1,        // Error threshold for line fitting
+      qtres: 1,        // Error threshold for quadratic spline fitting  
+      pathomit: turdSize, // Edge node paths shorter than this will be discarded
+      
+      // Color settings - force black and white
+      colorsampling: 1, // Enable color sampling (1) or disable (0)
+      numberofcolors: 2, // Limit to 2 colors (black and white)
+      mincolorratio: 0.02, // Minimum color ratio
+      colorquantcycles: 3, // Color quantization cycles
+      
+      // Path settings
+      strokewidth: 1,   // Stroke width
+      blurradius: 0,    // Blur radius (0 for no blur)
+      blurdelta: 20,    // Blur delta
+      
+      // Output settings
+      scale: 1,         // SVG scale
+      roundcoords: 1,   // Round coordinates to 1 decimal place
+      desc: false,      // Don't include description
+      viewbox: false,   // Don't include viewBox (we'll add it ourselves)
+    }
+
+    console.log(`Tracing with imagetracerjs - threshold: ${threshold}, turdSize: ${turdSize}`)
+
+    // Trace the image data to SVG using imagedataToSVG
+    const svgString = ImageTracer.imagedataToSVG(imageData, tracerOptions)
+
+    console.log(`ImageTracerJS vector tracing successful: ${svgString.length} characters`)
+    return Buffer.from(svgString, 'utf-8')
+    
+  } catch (error) {
+    console.error('Error in createOutlineSVGVectorTrace:', error)
+    const errorMsg = (error as any)?.message || String(error) || 'Vector tracing failed'
+    throw new Error(`Vector tracing failed: ${errorMsg}`)
   }
 }
 
@@ -505,6 +618,8 @@ export async function createOutline(
       return createOutlineColoringXDoG(imageBuffer, options)
     case 'coloring-hf':
       return createOutlineColoringHF(imageBuffer, options)
+    case 'svg-vector-trace':
+      return createOutlineSVGVectorTrace(imageBuffer, options)
     default:
       return createOutlineAdvancedEdgeDetection(imageBuffer, options)
   }

@@ -10,7 +10,10 @@
   },
   "dependencies": {
     "@types/sharp": "^0.31.1",
+    "canvas": "^3.2.0",
+    "imagetracerjs": "^1.2.6",
     "next": "15.5.0",
+    "potrace": "^2.0.2",
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "react-dropzone": "^14.3.8",

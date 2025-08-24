@@ -2,6 +2,28 @@ import { NextRequest, NextResponse } from 'next/server'
 import sharp from 'sharp'
 import { createOutline, OutlineOptions } from '@/lib/imageProcessing'
 
+function _getErrMsg(e: unknown): string {
+  try {
+    if (e == null) return 'Unknown error'
+    if (typeof e === 'string') return e
+    try {
+      const m = (e as any).message
+      if (typeof m === 'string' && m.length > 0) return m
+    } catch {
+      // ignore
+    }
+    try {
+      const n = (e as any).name
+      if (typeof n === 'string' && n.length > 0) return n
+    } catch {
+      // ignore
+    }
+    return Object.prototype.toString.call(e)
+  } catch {
+    return 'Unknown error'
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData()
@@ -52,7 +74,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate algorithm parameter
-    const validAlgorithms = ['edge-detection', 'portrait-optimized', 'high-contrast', 'artistic', 'ai-edge-detection', 'coloring-xdog', 'coloring-hf']
+  const validAlgorithms = ['edge-detection', 'portrait-optimized', 'high-contrast', 'artistic', 'ai-edge-detection', 'coloring-xdog', 'coloring-hf', 'svg-vector-trace']
     const validIntensities = ['light', 'medium', 'strong']
     
     if (!validAlgorithms.includes(algorithm)) {
@@ -93,9 +115,10 @@ export async function POST(request: NextRequest) {
       outlineBuffer = await createOutline(inputBuffer, options)
     } catch (processingError) {
       console.error('Error during image processing:', processingError)
+      const errorMessage = (processingError as any)?.message || String(processingError) || 'Unknown error'
       return NextResponse.json(
         { 
-          error: `Image processing failed: ${processingError instanceof Error ? processingError.message : 'Unknown processing error'}`,
+          error: `Image processing failed: ${errorMessage}`,
           algorithm,
           intensity,
           invertColors
@@ -104,12 +127,23 @@ export async function POST(request: NextRequest) {
       )
     }
     
-    const outlineBase64 = outlineBuffer.toString('base64')
-    const outlineImage = `data:image/png;base64,${outlineBase64}`
+    // If the processing returned an SVG (UTF-8 text), detect and return svg data URI
+    const maybeText = outlineBuffer.toString('utf8', 0, Math.min(outlineBuffer.length, 200)).trim()
+    let outlineImage: string
+    const isSvg = maybeText.startsWith('<?xml') || maybeText.startsWith('<svg')
+    if (isSvg) {
+      const outlineBase64 = outlineBuffer.toString('base64')
+      outlineImage = `data:image/svg+xml;charset=utf-8;base64,${outlineBase64}`
+    } else {
+      const outlineBase64 = outlineBuffer.toString('base64')
+      outlineImage = `data:image/png;base64,${outlineBase64}`
+    }
     
     // Generate filename
     const originalName = file.name.split('.')[0]
-    const filename = `${originalName}_outline_${algorithm}_${intensity}.png`
+    const filename = isSvg
+      ? `${originalName}_outline_${algorithm}_${intensity}.svg`
+      : `${originalName}_outline_${algorithm}_${intensity}.png`
     
     return NextResponse.json({
       success: true,

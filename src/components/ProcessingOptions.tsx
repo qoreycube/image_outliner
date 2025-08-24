@@ -44,6 +44,7 @@ export default function ProcessingOptions({
             <option value="ai-edge-detection">AI Edge Detection</option>
             <option value="coloring-xdog">Coloring Book (XDoG)</option>
             <option value="coloring-hf">Coloring Book (HF)</option>
+            <option value="svg-vector-trace">SVG Vector Tracing</option>
           </select>
           <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
             {algorithm === 'edge-detection' && 'Sophisticated edge detection with Sobel filters and morphological operations'}
@@ -53,6 +54,7 @@ export default function ProcessingOptions({
             {algorithm === 'ai-edge-detection' && 'Advanced AI-powered Canny edge detection with configurable thresholds and blur'}
             {algorithm === 'coloring-xdog' && 'eXtended Difference of Gaussians (XDoG) for clean, deterministic coloring-book outlines'}
             {algorithm === 'coloring-hf' && 'Local coloring-book generator using quantization and edge detection'}
+            {algorithm === 'svg-vector-trace' && 'Convert to black & white then vector-trace to an SVG (scalable vector outline)'}
           </p>
         </div>
 
