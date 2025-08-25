@@ -1,6 +1,8 @@
 import sharp from "sharp";
+import { createCanvas, loadImage } from "canvas";
+
+// Dynamic import for ImageTracerJS since it's a CommonJS module
 const ImageTracer = require("imagetracerjs");
-const { createCanvas, loadImage } = require("canvas");
 
 // Safe error message extractor. Avoids using `instanceof Error` which can
 // fail in some runtimes if the global Error has been shadowed or altered.
@@ -13,13 +15,13 @@ function getErrMsg(e: unknown): string {
     if (typeof e === "string") return e;
     // Safe access to common fields inside try/catch
     try {
-      const m = (e as any).message;
+      const m = (e as Error).message;
       if (typeof m === "string" && m.length > 0) return m;
     } catch {
       // ignore
     }
     try {
-      const n = (e as any).name;
+      const n = (e as {name: string}).name;
       if (typeof n === "string" && n.length > 0) return n;
     } catch {
       // ignore
@@ -704,7 +706,7 @@ export async function createOutlineSVGVectorTrace(
   } catch (error) {
     console.error("Error in createOutlineSVGVectorTrace:", error);
     const errorMsg =
-      (error as any)?.message || String(error) || "Vector tracing failed";
+      error instanceof Error ? error.message : String(error) || "Vector tracing failed";
     throw new Error(`Vector tracing failed: ${errorMsg}`);
   }
 }

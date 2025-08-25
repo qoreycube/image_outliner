@@ -2,28 +2,6 @@ import { NextRequest, NextResponse } from 'next/server'
 import sharp from 'sharp'
 import { createOutline, OutlineOptions } from '@/lib/imageProcessing'
 
-function _getErrMsg(e: unknown): string {
-  try {
-    if (e == null) return 'Unknown error'
-    if (typeof e === 'string') return e
-    try {
-      const m = (e as any).message
-      if (typeof m === 'string' && m.length > 0) return m
-    } catch {
-      // ignore
-    }
-    try {
-      const n = (e as any).name
-      if (typeof n === 'string' && n.length > 0) return n
-    } catch {
-      // ignore
-    }
-    return Object.prototype.toString.call(e)
-  } catch {
-    return 'Unknown error'
-  }
-}
-
 export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData()
@@ -115,7 +93,7 @@ export async function POST(request: NextRequest) {
       outlineBuffer = await createOutline(inputBuffer, options)
     } catch (processingError) {
       console.error('Error during image processing:', processingError)
-      const errorMessage = (processingError as any)?.message || String(processingError) || 'Unknown error'
+      const errorMessage = processingError instanceof Error ? processingError.message : String(processingError) || 'Unknown error'
       return NextResponse.json(
         { 
           error: `Image processing failed: ${errorMessage}`,
