@@ -35,7 +35,7 @@ export default function ProcessingOptions({
             value={algorithm}
             onChange={(e) => onAlgorithmChange(e.target.value)}
             disabled={disabled}
-            className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-white disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full p-2 pr-8 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-white disabled:opacity-50 disabled:cursor-not-allowed appearance-none bg-no-repeat custom-select"
           >
             <option value="edge-detection">Edge Detection</option>
             <option value="portrait-optimized">Portrait Optimized</option>
@@ -67,7 +67,7 @@ export default function ProcessingOptions({
             value={intensity}
             onChange={(e) => onIntensityChange(e.target.value)}
             disabled={disabled}
-            className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-white disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full p-2 pr-8 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-white disabled:opacity-50 disabled:cursor-not-allowed appearance-none bg-no-repeat custom-select"
           >
             <option value="light">Light</option>
             <option value="medium">Medium</option>
@@ -96,6 +96,20 @@ export default function ProcessingOptions({
           </span>
         </label>
       </div>
+      
+      <style jsx>{`
+        /* Custom select styling with proper chevron positioning */
+        .custom-select {
+          background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%236B7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3E%3C/svg%3E");
+          background-position: right 8px center;
+          background-size: 16px 16px;
+        }
+        
+        /* Dark mode chevron */
+        :global(.dark) .custom-select {
+          background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%239CA3AF' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3E%3C/svg%3E");
+        }
+      `}</style>
     </div>
   )
 }

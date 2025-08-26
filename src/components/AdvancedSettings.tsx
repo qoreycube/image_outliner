@@ -254,7 +254,7 @@ export default function AdvancedSettings({
                     value={getCurrentValue(config)}
                     onChange={(e) => handleSliderChange(config.key, e.target.value)}
                     disabled={disabled}
-                    className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-xs disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full p-2 pr-8 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-xs disabled:opacity-50 disabled:cursor-not-allowed appearance-none bg-no-repeat custom-select"
                   >
                     {config.options?.map((option) => (
                       <option key={option.value} value={option.value}>
@@ -311,6 +311,18 @@ export default function AdvancedSettings({
           cursor: pointer;
           border: 1px solid white;
           box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+        }
+        
+        /* Custom select styling with proper chevron positioning */
+        .custom-select {
+          background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%236B7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3E%3C/svg%3E");
+          background-position: right 8px center;
+          background-size: 16px 16px;
+        }
+        
+        /* Dark mode chevron */
+        :global(.dark) .custom-select {
+          background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%239CA3AF' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3E%3C/svg%3E");
         }
       `}</style>
     </div>

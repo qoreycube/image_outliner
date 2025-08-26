@@ -144,7 +144,7 @@ export default function Home() {
               onSettingsReset={handleSettingsReset}
             />
             
-            {selectedFile && processedResult && (
+            {/* {selectedFile && processedResult && (
               <div className="mt-6">
                 <button
                   onClick={() => downloadImage(processedResult.outlineImage, processedResult.filename)}
@@ -158,7 +158,7 @@ export default function Home() {
                   </div>
                 </button>
               </div>
-            )}
+            )} */}
             
             {error && (
               <div className="mt-6 p-4 bg-red-50 dark:bg-red-900 border border-red-200 dark:border-red-700 rounded-lg">
